@@ -26,11 +26,11 @@ type (
 	}
 
 	redisConfig struct {
-		Address      string `json:"address"`       // redis地址
-		Password     string `json:"password"`      // 密码
-		DB           int    `json:"db"`            // db index
-		PrefixKey    string `json:"prefix_key"`    // 前缀
-		SubscribeKey string `json:"subscribe_key"` // 订阅key
+		Address      string `json:"address"`      // redis地址
+		Password     string `json:"password"`     // 密码
+		DB           int    `json:"db"`           // db index
+		PrefixKey    string `json:"prefixKey"`    // 前缀
+		SubscribeKey string `json:"subscribeKey"` // 订阅key
 	}
 )
 
@@ -40,9 +40,9 @@ func (r *SourceRedis) Name() string {
 
 func (r *SourceRedis) Init(_ IDataConfig) {
 	//read data_config->file node
-	dataConfig := cprofile.GetConfig("data_config").GetConfig(r.Name())
+	dataConfig := cprofile.GetConfig("dataConfig").GetConfig(r.Name())
 	if dataConfig.Unmarshal(&r.redisConfig) != nil {
-		clog.Warnf("[data_config]->[%s] node in `%s` file not found.", r.Name(), cprofile.Name())
+		clog.Warnf("[dataConfig]->[%s] node in `%s` file not found.", r.Name(), cprofile.Name())
 		return
 	}
 

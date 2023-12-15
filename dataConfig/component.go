@@ -32,13 +32,13 @@ func (d *Component) Name() string {
 
 func (d *Component) Init() {
 	// read data_config node in profile-{env}.json
-	dataConfig := cprofile.GetConfig("data_config")
+	dataConfig := cprofile.GetConfig("dataConfig")
 	if dataConfig.LastError() != nil {
-		clog.Fatalf("`data_config` node in `%s` file not found.", cprofile.Name())
+		clog.Fatalf("`dataConfig` node in `%s` file not found.", cprofile.Name())
 	}
 
 	// get data source
-	sourceName := dataConfig.GetString("data_source")
+	sourceName := dataConfig.GetString("dataSource")
 	d.dataSource = GetDataSource(sourceName)
 	if d.dataSource == nil {
 		clog.Fatalf("[sourceName = %s] data source not found.", sourceName)

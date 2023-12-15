@@ -22,9 +22,9 @@ type (
 	}
 
 	fileConfig struct {
-		FilePath   string `json:"file_path"`   // 配置文件路径
-		ExtName    string `json:"ext_name"`    // 文件扩展名
-		ReloadTime int64  `json:"reload_time"` // 定时重载扫描(毫秒)
+		FilePath   string `json:"filePath"`   // 配置文件路径
+		ExtName    string `json:"extName"`    // 文件扩展名
+		ReloadTime int64  `json:"reloadTime"` // 定时重载扫描(毫秒)
 	}
 )
 
@@ -143,8 +143,8 @@ func (f *SourceFile) Stop() {
 }
 
 func (f *SourceFile) unmarshalFileConfig() error {
-	//read data_config->file node
-	dataConfig := cprofile.GetConfig("data_config").GetConfig(f.Name())
+	//read dataConfig->file node
+	dataConfig := cprofile.GetConfig("dataConfig").GetConfig(f.Name())
 
 	err := dataConfig.Unmarshal(&f.fileConfig)
 	if err != nil {
