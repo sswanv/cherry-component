@@ -21,7 +21,7 @@ type Component struct {
 	configs    []IConfig
 }
 
-func New() *Component {
+func NewComponent() *Component {
 	return &Component{}
 }
 

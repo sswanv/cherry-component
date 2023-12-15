@@ -20,18 +20,18 @@ type (
 )
 
 func NewHttp(name, address string) *Component {
-	return New(name, address)
+	return NewComponent(name, address)
 }
 
 func NewHttps(name, address, certFile, keyFile string) *Component {
-	return New(
+	return NewComponent(
 		name,
 		address,
 		WithCert(certFile, keyFile),
 	)
 }
 
-func New(name string, address string, opts ...OptionFunc) *Component {
+func NewComponent(name string, address string, opts ...OptionFunc) *Component {
 	return &Component{
 		name:       name,
 		HttpServer: NewHttpServer(address, opts...),
