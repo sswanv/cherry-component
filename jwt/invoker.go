@@ -2,10 +2,18 @@ package jwt
 
 import (
 	"errors"
-	"hall-server/internal/errx"
 	"time"
 
 	"github.com/golang-jwt/jwt/v5"
+)
+
+var (
+	GenTokenError         = errors.New("生成令牌失败")
+	TokenMalformed        = errors.New("令牌格式错误")
+	TokenExpired          = errors.New("令牌已过期")
+	TokenNotValidYet      = errors.New("令牌尚未激活")
+	TokenSignatureInvalid = errors.New("令牌签名无效")
+	TokenInvalid          = errors.New("令牌无效")
 )
 
 type Invoker interface {
@@ -30,7 +38,7 @@ func (c *Component) Generate(bundleName, deviceType, pid, openId string) (string
 
 	sign, err := token.SignedString(c.config.SecretKey)
 	if err != nil {
-		return "", 0, errx.GenTokenError.E(err)
+		return "", 0, GenTokenError
 	}
 	return sign, expiresAt.Unix(), nil
 }
@@ -42,20 +50,20 @@ func (c *Component) Validate(tokenString string) (*Claims, error) {
 	if err != nil {
 		switch {
 		case errors.Is(err, jwt.ErrTokenMalformed):
-			return nil, errx.TokenMalformed.N()
+			return nil, TokenMalformed
 		case errors.Is(err, jwt.ErrTokenExpired):
-			return nil, errx.TokenExpired.N()
+			return nil, TokenExpired
 		case errors.Is(err, jwt.ErrTokenNotValidYet):
-			return nil, errx.TokenNotValidYet.N()
+			return nil, TokenNotValidYet
 		case errors.Is(err, jwt.ErrTokenSignatureInvalid):
-			return nil, errx.TokenSignatureInvalid.N()
+			return nil, TokenSignatureInvalid
 		default:
-			return nil, errx.TokenInvalid.E(err)
+			return nil, TokenInvalid
 		}
 	}
 
 	if claims, ok := token.Claims.(*Claims); ok && token.Valid {
 		return claims, nil
 	}
-	return nil, errx.TokenInvalid.N()
+	return nil, TokenInvalid
 }
