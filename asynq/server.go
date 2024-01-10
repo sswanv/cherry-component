@@ -61,6 +61,7 @@ func (s *server) handle(rt reflect.Type) func(context.Context, *asynq.Task) erro
 func (s *server) run() {
 	mux := asynq.NewServeMux()
 	for _, controller := range s.controllers {
+		controller.PreInit(s.app)
 		for _, t := range controller.Tasks() {
 			task, ok := t.(Task)
 			if !ok {
