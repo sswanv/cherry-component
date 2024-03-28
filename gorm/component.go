@@ -1,20 +1,18 @@
 package gorm
 
 import (
-	"fmt"
 	"time"
 
 	cfacade "github.com/cherry-game/cherry/facade"
 	clog "github.com/cherry-game/cherry/logger"
 	cprofile "github.com/cherry-game/cherry/profile"
-	"gorm.io/driver/mysql"
+	"github.com/pkg/errors"
 	"gorm.io/gorm"
 	"gorm.io/gorm/logger"
 )
 
 const (
-	Name          = "gorm_component"
-	connectFormat = "%s:%s@(%s)/%s?charset=utf8&parseTime=True&loc=Local"
+	Name = "gorm_component"
 )
 
 type (
@@ -24,17 +22,23 @@ type (
 		ormMap map[string]map[string]*gorm.DB
 	}
 
-	mySqlConfig struct {
-		Enable         bool
-		GroupId        string
-		Id             string
-		DbName         string
-		Host           string
-		UserName       string
-		Password       string
-		MaxIdleConnect int
-		MaxOpenConnect int
-		LogMode        bool
+	generalDB struct {
+		DbName         string `json:"db_name"`          // 数据库名
+		Host           string `json:"host"`             // 连接地址
+		UserName       string `json:"user_name"`        // 数据库用户名
+		Password       string `json:"password"`         // 数据库密码
+		Config         string `json:"config"`           // 高级配置
+		MaxIdleConnect int    `json:"max_idle_connect"` // 空闲中的最大连接数
+		MaxOpenConnect int    `json:"max_open_connect"` // 打开到数据库的最大连接数
+		LogMode        bool   `json:"log_mode"`
+	}
+
+	specializedDB struct {
+		generalDB
+		Enable  bool   `json:"enable"`
+		GroupId string `json:"group_id"`
+		DbId    string `json:"db_id"`
+		Type    string `json:"type"`
 	}
 
 	// HashDb hash by group id
@@ -51,19 +55,14 @@ func (s *Component) Name() string {
 	return Name
 }
 
-func parseMysqlConfig(groupId string, item cfacade.ProfileJSON) *mySqlConfig {
-	return &mySqlConfig{
-		GroupId:        groupId,
-		Id:             item.GetString("db_id"),
-		DbName:         item.GetString("db_name"),
-		Host:           item.GetString("host"),
-		UserName:       item.GetString("user_name"),
-		Password:       item.GetString("password"),
-		MaxIdleConnect: item.GetInt("max_idle_connect", 4),
-		MaxOpenConnect: item.GetInt("max_open_connect", 8),
-		LogMode:        item.GetBool("log_mode", true),
-		Enable:         item.GetBool("enable", true),
+func parseGormConfig(groupId string, item cfacade.ProfileJSON) *specializedDB {
+	config := new(specializedDB)
+	err := item.Unmarshal(config)
+	if err != nil {
+		clog.Fatalf("failed to parse configuration: %v", err)
 	}
+	config.GroupId = groupId
+	return config
 }
 
 func (s *Component) Init() {
@@ -85,59 +84,38 @@ func (s *Component) Init() {
 		dbGroup := dbConfig.GetConfig(groupId)
 		for i := 0; i < dbGroup.Size(); i++ {
 			item := dbGroup.GetConfig(i)
-			mysqlConfig := parseMysqlConfig(groupId, item)
+			gormConfig := parseGormConfig(groupId, item)
 
-			for _, key := range dbIdList.Keys() {
-				if dbIdList.Get(key).ToString() != mysqlConfig.Id {
+			for j := 0; j < dbIdList.Size(); j++ {
+				if dbIdList.Get(j).ToString() != gormConfig.DbId {
 					continue
 				}
 
-				if !mysqlConfig.Enable {
-					clog.Fatalf("[dbName = %s] is disabled!", mysqlConfig.DbName)
+				if !gormConfig.Enable {
+					clog.Fatalf("[dbName = %s] is disabled!", gormConfig.DbName)
 				}
 
-				db, err := s.createORM(mysqlConfig)
+				db, err := s.createORM(gormConfig)
 				if err != nil {
-					clog.Fatalf("[dbName = %s] create orm fail. error = %s", mysqlConfig.DbName, err)
+					clog.Fatalf("[dbName = %s] create orm fail. error = %s", gormConfig.DbName, err)
 				}
 
-				s.ormMap[groupId][mysqlConfig.Id] = db
-				clog.Infof("[dbGroup =%s, dbName = %s] is connected.", mysqlConfig.GroupId, mysqlConfig.Id)
+				s.ormMap[groupId][gormConfig.DbId] = db
+				clog.Infof("[dbGroup =%s, dbName = %s] is connected.", gormConfig.GroupId, gormConfig.DbId)
 			}
 		}
 	}
 }
 
-func (s *Component) createORM(cfg *mySqlConfig) (*gorm.DB, error) {
-	dsn := fmt.Sprintf(connectFormat, cfg.UserName, cfg.Password, cfg.Host, cfg.DbName)
-
-	db, err := gorm.Open(mysql.Open(dsn), &gorm.Config{
-		Logger: getLogger(),
-	})
-
-	if err != nil {
-		return nil, err
+func (s *Component) createORM(cfg *specializedDB) (*gorm.DB, error) {
+	switch cfg.Type {
+	case "mysql":
+		return NewMysql(mysqlConfig{generalDB: cfg.generalDB})
+	case "clickhouse":
+		return NewClickhouse(clickhouseConfig{generalDB: cfg.generalDB})
+	default:
+		return nil, errors.Errorf("not support gorm type: [%v]", cfg.Type)
 	}
-
-	sqlDB, err := db.DB()
-	if err != nil {
-		return nil, err
-	}
-
-	sqlDB.SetMaxIdleConns(cfg.MaxIdleConnect)
-	sqlDB.SetMaxOpenConns(cfg.MaxOpenConnect)
-	sqlDB.SetConnMaxLifetime(time.Minute)
-
-	err = sqlDB.Ping()
-	if err != nil {
-		return nil, err
-	}
-
-	if cfg.LogMode {
-		return db.Debug(), nil
-	}
-
-	return db, nil
 }
 
 func getLogger() logger.Interface {
