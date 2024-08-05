@@ -7,6 +7,8 @@ import (
 	"github.com/hibiken/asynq"
 )
 
+var Marshal = marshal
+
 type Invoker interface {
 	Register(controllers ...IController)
 	EnqueueCtx(ctx context.Context, task Task, opts ...asynq.Option) error
