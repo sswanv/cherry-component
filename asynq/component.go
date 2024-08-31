@@ -2,6 +2,7 @@ package asynq
 
 import (
 	"context"
+	"fmt"
 	"reflect"
 
 	clog "github.com/cherry-game/cherry/logger"
@@ -46,6 +47,17 @@ type IController interface {
 	Tasks() []Task
 }
 
+func ComponentName(mode Mode) string {
+	switch mode {
+	case ModeServer:
+		return fmt.Sprintf("%s_%s", Name, "server")
+	case ModeClient:
+		return fmt.Sprintf("%s_%s", Name, "client")
+	default:
+		return Name
+	}
+}
+
 func NewComponent(mode Mode) *Component {
 	c := &Component{
 		mode: mode,
@@ -75,7 +87,7 @@ type Component struct {
 }
 
 func (c *Component) Name() string {
-	return Name
+	return ComponentName(c.mode)
 }
 
 func (c *Component) Init() {
