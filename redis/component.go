@@ -41,7 +41,7 @@ func (c *Component) Name() string {
 func (c *Component) Init() {
 	redisConfig := c.App().Settings().GetConfig("redis")
 	if redisConfig.LastError() != nil || redisConfig.Size() == 0 {
-		clog.Fatalf("[nodeId = %s] `redis` property not exists.", c.App().NodeId())
+		clog.Fatalf("[nodeId = %s] `redis` property not exists.", c.App().NodeID())
 		return
 	}
 

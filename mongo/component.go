@@ -48,7 +48,7 @@ func (*Component) Name() string {
 func (s *Component) Init() {
 	mongoListConfig := s.App().Settings().Get("mongo")
 	if mongoListConfig.LastError() != nil || mongoListConfig.Size() < 1 {
-		clog.Warnf("[nodeId = %s] `mongo_id_list` property not exists.", s.App().NodeId())
+		clog.Warnf("[nodeId = %s] `mongo_id_list` property not exists.", s.App().NodeID())
 		return
 	}
 
